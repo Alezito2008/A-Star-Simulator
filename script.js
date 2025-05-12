@@ -261,7 +261,7 @@ class Grid {
         if (cell.highlight) {
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 2;
-            ctx.strokeRect(cell.x * CELL_SIZE + (ctx.lineWidth - 1), cell.y * CELL_SIZE + (ctx.lineWidth - 1), CELL_SIZE - (ctx.lineWidth - 1)*2, CELL_SIZE - (ctx.lineWidth - 1)*2);
+            ctx.strokeRect(cell.coords.x * CELL_SIZE + (ctx.lineWidth - 1), cell.coords.y * CELL_SIZE + (ctx.lineWidth - 1), CELL_SIZE - (ctx.lineWidth - 1)*2, CELL_SIZE - (ctx.lineWidth - 1)*2);
         }
     }
 }
@@ -269,4 +269,5 @@ class Grid {
 const grid = new Grid()
 grid.draw();
 grid.getCell(1, 1).setType(CELL_TYPES.START);
+grid.getCell(0, 1).setType(CELL_TYPES.END);
 grid.draw();
