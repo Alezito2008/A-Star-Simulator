@@ -126,10 +126,10 @@ class Grid {
                 const cell = this.grid[i][j];
                 ctx.fillStyle = cell.color;
                 ctx.fillRect(j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                if (cell.hightlight) {
+                if (cell.highlight) {
                     ctx.strokeStyle = 'yellow';
-                    ctx.strokeWidth = 3;
-                    ctx.fillStroke(j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(j * CELL_SIZE + 2, i * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
                 }
             }
         }
@@ -138,7 +138,7 @@ class Grid {
 
 const grid = new Grid()
 grid.drawGrid();
-const cell = grid.getCell(0, 0);
+const cell = grid.getCell(1, 1)
 cell.setColor('green');
-grid.getCell(4, 2).setHightlight(true)
+cell.setHightlight(true)
 grid.drawGrid(); // Redraw the grid to reflect the cell color change
