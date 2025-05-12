@@ -7,8 +7,54 @@ const CELL_SIZE = 50;
 const DISTANCE = 10;
 const DIAGONAL_DISTANCE = Math.sqrt(Math.pow(DISTANCE, 2) + Math.pow(DISTANCE, 2));
 
+const CELL_TYPES = {
+    EMPTY: 0,
+    WALL: 1,
+    START: 2,
+    END: 3,
+    VISITED: 4,
+    CURRENT: 5,
+}
+
+let selectedCell = null;
+
 ctx.fillStyle = 'white';
 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+
+canvas.addEventListener('click', (e) => {
+    const x = Math.floor(e.clientX / CELL_SIZE);
+    const y = Math.floor(e.clientY / CELL_SIZE);
+
+    const cell = grid.getCell(x, y);
+    if (cell) {
+        if (cell.type === CELL_TYPES.EMPTY) {
+            cell.setColor('black');
+            cell.type = CELL_TYPES.WALL;
+        } else if (cell.type === CELL_TYPES.WALL) {
+            cell.setColor('white');
+            cell.type = CELL_TYPES.EMPTY;
+        }
+
+        grid.draw();
+    } else {
+        console.error('Cell not found');
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    const x = Math.floor(e.clientX / CELL_SIZE);
+    const y = Math.floor(e.clientY / CELL_SIZE);
+
+    const cell = grid.getCell(x, y);
+    if (cell) {
+        if (selectedCell && selectedCell !== cell) {
+            selectedCell.setHightlight(false);
+        }
+        cell.setHightlight(true);
+        selectedCell = cell;
+        grid.draw();
+    }
+});
 
 class Vector2D {
     constructor(x, y) {
@@ -43,16 +89,44 @@ class Vector2D {
 }
 
 class Cell {
-    constructor() {
+    constructor(coords) {
         this.distancia_inicio = 0;
         this.distancia_final = 0;
         this.fuerza = 0;
         this.highlight = false;
         this.color = 'white';
+        this.type = CELL_TYPES.EMPTY;
+        this.coords = new Vector2D(coords.x, coords.y);
     }
 
     setColor(color) {
         this.color = color;
+    }
+
+    setType(type) {
+        this.type = type;
+        switch (type) {
+            case CELL_TYPES.EMPTY:
+                this.color = 'white';
+                break;
+            case CELL_TYPES.WALL:
+                this.color = 'black';
+                break;
+            case CELL_TYPES.START:
+                this.color = 'blue';
+                break;
+            case CELL_TYPES.END:
+                this.color = 'red';
+                break;
+            case CELL_TYPES.VISITED:
+                this.color = 'yellow';
+                break;
+            case CELL_TYPES.CURRENT:
+                this.color = 'green';
+                break;
+            default:
+                this.color = 'white';
+        }
     }
 
     setHightlight(isHighlighted) {
@@ -71,7 +145,8 @@ class Grid {
             this.grid.push([])
 
             for (let j = 0; j < this.celdas_x; j++) {
-                this.grid[i].push(new Cell());
+                const coords = new Vector2D(j, i);
+                this.grid[i].push(new Cell(coords));
             }
         }
 
@@ -82,16 +157,17 @@ class Grid {
     }
 
     getCell(x, y) {
+        if (x < 0 || x >= this.celdas_x || y < 0 || y >= this.celdas_y) {
+            return null;
+        }
         return this.grid[y][x];
     }
 
-    drawGrid() {
-        // Draw cells
+    draw() {
         this.drawCells();
 
-        // Redraw grid lines to ensure visibility
-        ctx.strokeStyle = 'gray'; // Set the color for the grid lines
-        ctx.lineWidth = 1; // Set the line width
+        ctx.strokeStyle = 'gray'; // Color de las líneas
+        ctx.lineWidth = 1; // Ancho de las líneas
 
         let coord_x = 0;
         let coord_y = 0;
@@ -99,7 +175,7 @@ class Grid {
         const bottom = this.celdas_y * CELL_SIZE;
         const right = this.celdas_x * CELL_SIZE;
 
-        // Draw vertical lines
+        // Líneas verticales
         for (let x = 0; x <= this.celdas_x; x++) {
             ctx.beginPath();
             ctx.moveTo(coord_x, 0);
@@ -109,7 +185,7 @@ class Grid {
             coord_x += CELL_SIZE;
         }
 
-        // Draw horizontal lines
+        // Líneas horizontales
         for (let y = 0; y <= this.celdas_y; y++) {
             ctx.beginPath();
             ctx.moveTo(0, coord_y);
@@ -124,21 +200,25 @@ class Grid {
         for (let i = 0; i < this.celdas_y; i++) {
             for (let j = 0; j < this.celdas_x; j++) {
                 const cell = this.grid[i][j];
-                ctx.fillStyle = cell.color;
-                ctx.fillRect(j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                if (cell.highlight) {
-                    ctx.strokeStyle = 'yellow';
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(j * CELL_SIZE + 2, i * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
-                }
+                cell.x = j;
+                cell.y = i;
+                this.drawCell(cell)
             }
+        }
+    }
+
+    drawCell(cell) {
+        ctx.fillStyle = cell.color;
+        ctx.fillRect(cell.x * CELL_SIZE, cell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        if (cell.highlight) {
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(cell.x * CELL_SIZE + (ctx.lineWidth - 1), cell.y * CELL_SIZE + (ctx.lineWidth - 1), CELL_SIZE - (ctx.lineWidth - 1)*2, CELL_SIZE - (ctx.lineWidth - 1)*2);
         }
     }
 }
 
 const grid = new Grid()
-grid.drawGrid();
-const cell = grid.getCell(1, 1)
-cell.setColor('green');
-cell.setHightlight(true)
-grid.drawGrid(); // Redraw the grid to reflect the cell color change
+grid.draw();
+grid.getCell(1, 1).setType(CELL_TYPES.START);
+grid.draw();
