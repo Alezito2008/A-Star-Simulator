@@ -8,15 +8,19 @@ const DISTANCE = 10;
 const DIAGONAL_DISTANCE = Math.sqrt(Math.pow(DISTANCE, 2) + Math.pow(DISTANCE, 2));
 
 const CELL_TYPES = {
-    EMPTY: 0,
-    WALL: 1,
-    START: 2,
-    END: 3,
-    VISITED: 4,
-    CURRENT: 5,
+    EMPTY: 'EMPTY',
+    WALL: 'WALL',
+    START: 'START',
+    END: 'END',
+    VISITED: 'VISITED',
+    CURRENT: 'CURRENT'
 }
 
-let selectedCell = null;
+let previousSelectedCell = null;
+
+let movingCell = false;
+let previousCellType = null;
+let movingCellType = null;
 
 ctx.fillStyle = 'white';
 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
@@ -27,12 +31,13 @@ canvas.addEventListener('click', (e) => {
 
     const cell = grid.getCell(x, y);
     if (cell) {
-        if (cell.type === CELL_TYPES.EMPTY) {
-            cell.setColor('black');
-            cell.type = CELL_TYPES.WALL;
+        if (movingCell && previousCellType === CELL_TYPES.EMPTY) {
+            movingCell = false;
+            cell.setType(movingCellType);
+        } else if (cell.type === CELL_TYPES.EMPTY) {
+            cell.setType(CELL_TYPES.WALL);
         } else if (cell.type === CELL_TYPES.WALL) {
-            cell.setColor('white');
-            cell.type = CELL_TYPES.EMPTY;
+            cell.setType(CELL_TYPES.EMPTY);
         }
 
         grid.draw();
@@ -41,19 +46,44 @@ canvas.addEventListener('click', (e) => {
     }
 });
 
-canvas.addEventListener('mousemove', (e) => {
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
     const x = Math.floor(e.clientX / CELL_SIZE);
     const y = Math.floor(e.clientY / CELL_SIZE);
 
     const cell = grid.getCell(x, y);
-    if (cell) {
-        if (selectedCell && selectedCell !== cell) {
-            selectedCell.setHightlight(false);
-        }
-        cell.setHightlight(true);
-        selectedCell = cell;
-        grid.draw();
+
+    if (!movingCell) {
+        movingCell = true;
+        movingCellType = cell.type;
+        cell.setType(CELL_TYPES.EMPTY);
+        previousCellType = CELL_TYPES.EMPTY;
+    } else {
+        alert('Ya estás moviendo una celda');
     }
+})
+
+canvas.addEventListener('mousemove', (e) => {
+    const x = Math.floor(e.clientX / CELL_SIZE);
+    const y = Math.floor(e.clientY / CELL_SIZE);
+
+    const selectedCell = grid.getCell(x, y);
+    if (selectedCell && previousSelectedCell !== selectedCell) {
+        if (previousSelectedCell) {
+            previousSelectedCell.setHightlight(false);
+            movingCell && previousSelectedCell.setType(previousCellType);
+        }
+        selectedCell.setHightlight(true);
+
+        if (movingCell) {
+            previousCellType = selectedCell.type
+            selectedCell.setType(movingCellType);
+        }
+
+        previousSelectedCell = selectedCell;
+    }
+
+    grid.draw();
 });
 
 class Vector2D {
