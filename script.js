@@ -29,6 +29,10 @@ ctx.fillStyle = 'white';
 ctx.font = SMALL_FONT;
 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
+function emptyStringIfZero(value) {
+    return value === 0 ? '' : value;
+}
+
 canvas.addEventListener('click', (e) => {
     const x = Math.floor(e.clientX / CELL_SIZE);
     const y = Math.floor(e.clientY / CELL_SIZE);
@@ -57,13 +61,11 @@ canvas.addEventListener('contextmenu', (e) => {
 
     const cell = grid.getCell(x, y);
 
-    if (!movingCell) {
+    if (!movingCell && cell && cell.type !== CELL_TYPES.EMPTY) {
         movingCell = true;
         movingCellType = cell.type;
         cell.setType(CELL_TYPES.EMPTY);
         previousCellType = CELL_TYPES.EMPTY;
-    } else {
-        alert('Ya estás moviendo una celda');
     }
 })
 
@@ -85,9 +87,9 @@ canvas.addEventListener('mousemove', (e) => {
         }
 
         previousSelectedCell = selectedCell;
-    }
 
-    grid.draw();
+        grid.draw();
+    }
 });
 
 class Vector2D {
@@ -183,9 +185,6 @@ class Grid {
             for (let j = 0; j < this.celdas_x; j++) {
                 const coords = new Vector2D(j, i);
                 const cell = new Cell(coords)
-                cell.distancia_inicio = 123;
-                cell.distancia_final = 246;
-                cell.fuerza = 823;
                 this.grid[i].push(cell);
             }
         }
@@ -253,12 +252,12 @@ class Grid {
         ctx.fillStyle = cell.textColor;
         ctx.font = SMALL_FONT;
         ctx.textAlign = 'left';
-        ctx.fillText(cell.distancia_inicio, cell.coords.x * CELL_SIZE + 5, cell.coords.y * CELL_SIZE + 15);
+        ctx.fillText(emptyStringIfZero(cell.distancia_inicio), cell.coords.x * CELL_SIZE + 5, cell.coords.y * CELL_SIZE + 15);
         ctx.textAlign = 'right';
-        ctx.fillText(cell.distancia_final, cell.coords.x * CELL_SIZE + CELL_SIZE - 5, cell.coords.y * CELL_SIZE + 15);
+        ctx.fillText(emptyStringIfZero(cell.distancia_final), cell.coords.x * CELL_SIZE + CELL_SIZE - 5, cell.coords.y * CELL_SIZE + 15);
         ctx.textAlign = 'center';
         ctx.font = MEDIUM_FONT;
-        ctx.fillText(cell.fuerza, cell.coords.x * CELL_SIZE + (CELL_SIZE / 2), cell.coords.y * CELL_SIZE + (CELL_SIZE / 4)*3);
+        ctx.fillText(emptyStringIfZero(cell.fuerza), cell.coords.x * CELL_SIZE + (CELL_SIZE / 2), cell.coords.y * CELL_SIZE + (CELL_SIZE / 4)*3);
         if (cell.highlight) {
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 2;
