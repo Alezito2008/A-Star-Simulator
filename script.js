@@ -1,6 +1,9 @@
 const canvas = document.getElementById('simulator');
 const ctx = canvas.getContext('2d');
 
+const SMALL_FONT = '10px Arial';
+const MEDIUM_FONT = '15px Arial';
+
 const WIDTH = ctx.canvas.width = window.innerWidth - 10;
 const HEIGHT = ctx.canvas.height = window.innerHeight - 10;
 const CELL_SIZE = 50;
@@ -23,6 +26,7 @@ let previousCellType = null;
 let movingCellType = null;
 
 ctx.fillStyle = 'white';
+ctx.font = SMALL_FONT;
 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
 canvas.addEventListener('click', (e) => {
@@ -127,6 +131,7 @@ class Cell {
         this.color = 'white';
         this.type = CELL_TYPES.EMPTY;
         this.coords = new Vector2D(coords.x, coords.y);
+        this.textColor = 'black';
     }
 
     setColor(color) {
@@ -141,9 +146,10 @@ class Cell {
                 break;
             case CELL_TYPES.WALL:
                 this.color = 'black';
+                this.textColor = 'white';
                 break;
             case CELL_TYPES.START:
-                this.color = 'blue';
+                this.color = 'lime';
                 break;
             case CELL_TYPES.END:
                 this.color = 'red';
@@ -176,7 +182,11 @@ class Grid {
 
             for (let j = 0; j < this.celdas_x; j++) {
                 const coords = new Vector2D(j, i);
-                this.grid[i].push(new Cell(coords));
+                const cell = new Cell(coords)
+                cell.distancia_inicio = 123;
+                cell.distancia_final = 246;
+                cell.fuerza = 823;
+                this.grid[i].push(cell);
             }
         }
 
@@ -230,8 +240,8 @@ class Grid {
         for (let i = 0; i < this.celdas_y; i++) {
             for (let j = 0; j < this.celdas_x; j++) {
                 const cell = this.grid[i][j];
-                cell.x = j;
-                cell.y = i;
+                cell.coords.x = j;
+                cell.coords.y = i;
                 this.drawCell(cell)
             }
         }
@@ -239,7 +249,16 @@ class Grid {
 
     drawCell(cell) {
         ctx.fillStyle = cell.color;
-        ctx.fillRect(cell.x * CELL_SIZE, cell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        ctx.fillRect(cell.coords.x * CELL_SIZE, cell.coords.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        ctx.fillStyle = cell.textColor;
+        ctx.font = SMALL_FONT;
+        ctx.textAlign = 'left';
+        ctx.fillText(cell.distancia_inicio, cell.coords.x * CELL_SIZE + 5, cell.coords.y * CELL_SIZE + 15);
+        ctx.textAlign = 'right';
+        ctx.fillText(cell.distancia_final, cell.coords.x * CELL_SIZE + CELL_SIZE - 5, cell.coords.y * CELL_SIZE + 15);
+        ctx.textAlign = 'center';
+        ctx.font = MEDIUM_FONT;
+        ctx.fillText(cell.fuerza, cell.coords.x * CELL_SIZE + (CELL_SIZE / 2), cell.coords.y * CELL_SIZE + (CELL_SIZE / 4)*3);
         if (cell.highlight) {
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 2;
