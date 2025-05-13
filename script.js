@@ -186,7 +186,7 @@ class Cell {
                     if (neighbor.type !== CELL_TYPES.CLOSED && neighbor.type !== CELL_TYPES.WALL) {
                         const nuevaDistanciaInicio = neighbor.calcularDistancia(this) + this.distancia_inicio;
 
-                        if (neighbor.type !== CELL_TYPES.OPEN) {
+                        if (neighbor.type !== CELL_TYPES.OPEN || neighbor.distancia_inicio > nuevaDistanciaInicio) {
                             neighbor.setType(CELL_TYPES.OPEN);
                             neighbor.pointsTo = this;
                         }
