@@ -36,6 +36,7 @@ const COLORS = {
 
 const MOSTRAR_NUMEROS = false;
 const COLOREAR_CELDAS = false;
+const ATRAVESAR_DIAGONALES = false;
 
 let previousSelectedCell = null;
 let movingCell = false;
@@ -257,10 +258,21 @@ class Cell {
         ];
 
         for (const dir of directions) {
-            const neighbor = grid.getCell(this.coords.x + dir.x, this.coords.y + dir.y);
-            if (neighbor) {
-                neighbors.push(neighbor);
+            const nx = this.coords.x + dir.x;
+            const ny = this.coords.y + dir.y;
+
+            const neighbor = grid.getCell(nx, ny);
+            if (!neighbor) continue;
+
+            if (Math.abs(dir.x) === 1 && Math.abs(dir.y) === 1 && !ATRAVESAR_DIAGONALES) {
+                const diagonalHorizontal = grid.getCell(this.coords.x + dir.x, this.coords.y);
+                const diagonalVertical = grid.getCell(this.coords.x, this.coords.y + dir.y);
+                if (diagonalHorizontal.type === CELL_TYPES.WALL || diagonalVertical.type === CELL_TYPES.WALL) {
+                    continue;
+                }
             }
+
+            neighbors.push(neighbor);
         }
 
         return neighbors;
