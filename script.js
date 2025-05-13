@@ -36,7 +36,7 @@ const COLORS = {
 
 const MOSTRAR_NUMEROS = false;
 const COLOREAR_CELDAS = false;
-const ATRAVESAR_DIAGONALES = false;
+const ATRAVESAR_DIAGONALES = true;
 
 let previousSelectedCell = null;
 let movingCell = false;
@@ -207,7 +207,7 @@ class Cell {
                 break;
             case CELL_TYPES.CLOSED:
                 this.color = COLORS.CLOSED;
-                this.getNeightbors().forEach(neighbor => {
+                this.getNeighbors().forEach(neighbor => {
                     if (neighbor.type !== CELL_TYPES.CLOSED && neighbor.type !== CELL_TYPES.WALL) {
                         const nuevaDistanciaInicio = neighbor.calcularDistancia(this) + this.distancia_inicio;
 
@@ -244,7 +244,7 @@ class Cell {
         this.highlight = isHighlighted;
     }
 
-    getNeightbors() {
+    getNeighbors() {
         const neighbors = [];
         const directions = [
             { x: 0, y: -1 }, // Arriba
@@ -265,9 +265,10 @@ class Cell {
             if (!neighbor) continue;
 
             if (Math.abs(dir.x) === 1 && Math.abs(dir.y) === 1 && !ATRAVESAR_DIAGONALES) {
-                const diagonalHorizontal = grid.getCell(this.coords.x + dir.x, this.coords.y);
-                const diagonalVertical = grid.getCell(this.coords.x, this.coords.y + dir.y);
-                if (diagonalHorizontal.type === CELL_TYPES.WALL || diagonalVertical.type === CELL_TYPES.WALL) {
+                const horizontalNeighbor = grid.getCell(this.coords.x + dir.x, this.coords.y);
+                const verticalNeighbor = grid.getCell(this.coords.x, this.coords.y + dir.y);
+
+                if (horizontalNeighbor.type === CELL_TYPES.WALL && verticalNeighbor.type === CELL_TYPES.WALL) {
                     continue;
                 }
             }
@@ -443,6 +444,8 @@ function simulate() {
 
 const grid = new Grid()
 grid.draw();
-grid.getCell(2, 7).setType(CELL_TYPES.START);
-grid.getCell(7, 9).setType(CELL_TYPES.END);
+const centroH = Math.floor(grid.celdas_x / 2);
+const centroV = Math.floor(grid.celdas_y / 2);
+grid.getCell(centroH - Math.floor(centroH / 2), centroV).setType(CELL_TYPES.START);
+grid.getCell(centroH + Math.floor(centroH / 2), centroV).setType(CELL_TYPES.END);
 grid.draw();
