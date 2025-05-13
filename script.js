@@ -1,5 +1,6 @@
 const canvas = document.getElementById('simulator');
 const ctx = canvas.getContext('2d');
+const stepButton = document.getElementById('step');
 
 const SMALL_FONT = '10px Arial';
 const MEDIUM_FONT = '15px Arial';
@@ -15,23 +16,31 @@ const CELL_TYPES = {
     WALL: 'WALL',
     START: 'START',
     END: 'END',
-    VISITED: 'VISITED',
-    CURRENT: 'CURRENT'
+    OPEN: 'OPEN',
+    CLOSED: 'CLOSED'
 }
 
-let previousSelectedCell = null;
 
+let previousSelectedCell = null;
 let movingCell = false;
 let previousCellType = null;
 let movingCellType = null;
+
+let startCell = null;
+let endCell = null;
+let currentCell = null;
+let openCells = [];
+let closedCells = [];
 
 ctx.fillStyle = 'white';
 ctx.font = SMALL_FONT;
 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
-function emptyStringIfZero(value) {
-    return value === 0 ? '' : value;
+function emptyStringIfNull(value) {
+    return value === null ? '' : value;
 }
+
+stepButton.addEventListener('click', step);
 
 canvas.addEventListener('click', (e) => {
     const x = Math.floor(e.clientX / CELL_SIZE);
@@ -126,18 +135,28 @@ class Vector2D {
 
 class Cell {
     constructor(coords) {
-        this.distancia_inicio = 0;
-        this.distancia_final = 0;
-        this.fuerza = 0;
+        this.distancia_inicio = null;
+        this.distancia_final = null;
+        this.fuerza = null;
         this.highlight = false;
         this.color = 'white';
         this.type = CELL_TYPES.EMPTY;
         this.coords = new Vector2D(coords.x, coords.y);
         this.textColor = 'black';
+        this.pointsTo = null;
     }
 
     setColor(color) {
         this.color = color;
+    }
+
+    calcularDistancia(targetCell) {
+        const dy = Math.abs(this.coords.y - targetCell.coords.y);
+        const dx = Math.abs(this.coords.x - targetCell.coords.x);
+        const diagonales = Math.min(dx, dy);
+        const rectas = Math.abs(dx - dy)
+        const distancia = Math.floor(rectas * DISTANCE + diagonales * DIAGONAL_DISTANCE);
+        return distancia
     }
 
     setType(type) {
@@ -151,16 +170,46 @@ class Cell {
                 this.textColor = 'white';
                 break;
             case CELL_TYPES.START:
+                startCell = this;
                 this.color = 'lime';
                 break;
             case CELL_TYPES.END:
+                endCell = this;
                 this.color = 'red';
                 break;
-            case CELL_TYPES.VISITED:
+            case CELL_TYPES.OPEN:
                 this.color = 'yellow';
+                if (!openCells.includes(this)) openCells.push(this);
                 break;
-            case CELL_TYPES.CURRENT:
-                this.color = 'green';
+            case CELL_TYPES.CLOSED:
+                this.getNeightbors().forEach(neighbor => {
+                    if (neighbor.type !== CELL_TYPES.CLOSED && neighbor.type !== CELL_TYPES.WALL) {
+                        const nuevaDistanciaInicio = neighbor.calcularDistancia(this) + this.distancia_inicio;
+
+                        if (neighbor.type !== CELL_TYPES.OPEN) {
+                            neighbor.setType(CELL_TYPES.OPEN);
+                            neighbor.pointsTo = this;
+                        }
+
+                        neighbor.distancia_final = neighbor.calcularDistancia(endCell);
+                        if (neighbor.distancia_inicio > nuevaDistanciaInicio || !neighbor.distancia_inicio) {
+                            neighbor.distancia_inicio = nuevaDistanciaInicio;
+                        }
+                        neighbor.distancia_final = neighbor.distancia_final;
+                        neighbor.fuerza = neighbor.distancia_inicio + neighbor.distancia_final;
+
+                        startCell.setColor('lime');
+                        endCell.setColor('red');
+                    }
+                })
+                this.color = 'lightblue';
+                closedCells.push(this);
+                currentCell = this;
+                // Eliminar de las abiertas
+                const index = openCells.indexOf(this);
+                if (index > -1) {
+                    openCells.splice(index, 1);
+                }
                 break;
             default:
                 this.color = 'white';
@@ -169,6 +218,29 @@ class Cell {
 
     setHightlight(isHighlighted) {
         this.highlight = isHighlighted;
+    }
+
+    getNeightbors() {
+        const neighbors = [];
+        const directions = [
+            { x: 0, y: -1 }, // Arriba
+            { x: 0, y: 1 }, // Abajo
+            { x: 1, y: 0 }, // Derecha
+            { x: -1, y: 0 }, // Izquierda
+            { x: -1, y: -1 }, // Arriba izquierda
+            { x: 1, y: -1 }, // Arriba derecha
+            { x: 1, y: 1 }, // Abajo derecha
+            { x: -1, y: 1 } // Abajo izquierda
+        ];
+
+        for (const dir of directions) {
+            const neighbor = grid.getCell(this.coords.x + dir.x, this.coords.y + dir.y);
+            if (neighbor) {
+                neighbors.push(neighbor);
+            }
+        }
+
+        return neighbors;
     }
 }
 
@@ -252,12 +324,12 @@ class Grid {
         ctx.fillStyle = cell.textColor;
         ctx.font = SMALL_FONT;
         ctx.textAlign = 'left';
-        ctx.fillText(emptyStringIfZero(cell.distancia_inicio), cell.coords.x * CELL_SIZE + 5, cell.coords.y * CELL_SIZE + 15);
+        ctx.fillText(emptyStringIfNull(cell.distancia_inicio), cell.coords.x * CELL_SIZE + 5, cell.coords.y * CELL_SIZE + 15);
         ctx.textAlign = 'right';
-        ctx.fillText(emptyStringIfZero(cell.distancia_final), cell.coords.x * CELL_SIZE + CELL_SIZE - 5, cell.coords.y * CELL_SIZE + 15);
+        ctx.fillText(emptyStringIfNull(cell.distancia_final), cell.coords.x * CELL_SIZE + CELL_SIZE - 5, cell.coords.y * CELL_SIZE + 15);
         ctx.textAlign = 'center';
         ctx.font = MEDIUM_FONT;
-        ctx.fillText(emptyStringIfZero(cell.fuerza), cell.coords.x * CELL_SIZE + (CELL_SIZE / 2), cell.coords.y * CELL_SIZE + (CELL_SIZE / 4)*3);
+        ctx.fillText(emptyStringIfNull(cell.fuerza), cell.coords.x * CELL_SIZE + (CELL_SIZE / 2), cell.coords.y * CELL_SIZE + (CELL_SIZE / 4)*3);
         if (cell.highlight) {
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 2;
@@ -266,8 +338,43 @@ class Grid {
     }
 }
 
+function colorearCamino() {
+    let actual = endCell;
+    while (actual !== startCell) {
+        actual.setColor('pink');
+        actual = actual.pointsTo;
+    }
+}
+
+function step() {
+    if (!currentCell) {
+        currentCell = startCell;
+        currentCell.setType(CELL_TYPES.CLOSED);
+    }
+
+    if (openCells.length === 0) {
+        alert('No se encontró el camino')
+        return
+    }
+
+    openCells.sort((a, b) => {
+    if (a.fuerza === b.fuerza) {
+        return a.distancia_final - b.distancia_final;
+    }
+    return a.fuerza - b.fuerza;
+    });
+
+    openCells[0].setType(CELL_TYPES.CLOSED);
+    if (currentCell === endCell) {
+        currentCell.setType(CELL_TYPES.END);
+        colorearCamino();
+    }
+
+    grid.draw();
+}
+
 const grid = new Grid()
 grid.draw();
-grid.getCell(1, 1).setType(CELL_TYPES.START);
-grid.getCell(0, 1).setType(CELL_TYPES.END);
+grid.getCell(2, 7).setType(CELL_TYPES.START);
+grid.getCell(7, 9).setType(CELL_TYPES.END);
 grid.draw();

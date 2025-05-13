@@ -12,10 +12,21 @@
             place-items: center;
             background-color: white;
         }
+        .opciones {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
     <canvas id="simulator" width="1000" height="500"></canvas>
+    <div class="opciones">
+        <button id="step">Step</button>
+        <button id="reset">Reset</button>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
