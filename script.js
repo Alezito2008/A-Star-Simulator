@@ -65,7 +65,7 @@ function emptyStringIfNull(value) {
 
 simulateButton.addEventListener('click', simulate);
 stepButton.addEventListener('click', step);
-resetButton.addEventListener('click', window.location.reload);
+resetButton.addEventListener('click', () => location.reload());
 
 canvas.addEventListener('click', (e) => {
     const x = Math.floor(e.clientX / CELL_SIZE);
