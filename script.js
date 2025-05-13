@@ -1,6 +1,8 @@
 const canvas = document.getElementById('simulator');
 const ctx = canvas.getContext('2d');
 const stepButton = document.getElementById('step');
+const simulateButton = document.getElementById('simulate');
+const resetButton = document.getElementById('reset');
 
 const SMALL_FONT = '10px Arial';
 const MEDIUM_FONT = '15px Arial';
@@ -20,6 +22,20 @@ const CELL_TYPES = {
     CLOSED: 'CLOSED'
 }
 
+const COLORS = {
+    BACKGROUND: 'white',
+    GRID: 'gray',
+    NUMBERS: 'black',
+    EMPTY: 'white',
+    WALL: 'black',
+    START: 'lime',
+    END: 'red',
+    OPEN: 'yellow',
+    CLOSED: 'lightblue',
+}
+
+const MOSTRAR_NUMEROS = false;
+const COLOREAR_CELDAS = false;
 
 let previousSelectedCell = null;
 let movingCell = false;
@@ -32,15 +48,24 @@ let currentCell = null;
 let openCells = [];
 let closedCells = [];
 
-ctx.fillStyle = 'white';
+let caminoEncontrado = false;
+
+ctx.fillStyle = COLORS.BACKGROUND;
 ctx.font = SMALL_FONT;
 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+
+if (!COLOREAR_CELDAS) {
+    COLORS.OPEN = COLORS.EMPTY;
+    COLORS.CLOSED = COLORS.EMPTY;
+}
 
 function emptyStringIfNull(value) {
     return value === null ? '' : value;
 }
 
+simulateButton.addEventListener('click', simulate);
 stepButton.addEventListener('click', step);
+resetButton.addEventListener('click', window.location.reload);
 
 canvas.addEventListener('click', (e) => {
     const x = Math.floor(e.clientX / CELL_SIZE);
@@ -139,10 +164,9 @@ class Cell {
         this.distancia_final = null;
         this.fuerza = null;
         this.highlight = false;
-        this.color = 'white';
+        this.color = COLORS.EMPTY;
         this.type = CELL_TYPES.EMPTY;
         this.coords = new Vector2D(coords.x, coords.y);
-        this.textColor = 'black';
         this.pointsTo = null;
     }
 
@@ -163,25 +187,25 @@ class Cell {
         this.type = type;
         switch (type) {
             case CELL_TYPES.EMPTY:
-                this.color = 'white';
+                this.color = COLORS.EMPTY;
                 break;
             case CELL_TYPES.WALL:
-                this.color = 'black';
-                this.textColor = 'white';
+                this.color = COLORS.WALL;
                 break;
             case CELL_TYPES.START:
                 startCell = this;
-                this.color = 'lime';
+                this.color = COLORS.START;
                 break;
             case CELL_TYPES.END:
                 endCell = this;
-                this.color = 'red';
+                this.color = COLORS.END;
                 break;
             case CELL_TYPES.OPEN:
-                this.color = 'yellow';
+                this.color = COLORS.OPEN;
                 if (!openCells.includes(this)) openCells.push(this);
                 break;
             case CELL_TYPES.CLOSED:
+                this.color = COLORS.CLOSED;
                 this.getNeightbors().forEach(neighbor => {
                     if (neighbor.type !== CELL_TYPES.CLOSED && neighbor.type !== CELL_TYPES.WALL) {
                         const nuevaDistanciaInicio = neighbor.calcularDistancia(this) + this.distancia_inicio;
@@ -198,11 +222,10 @@ class Cell {
                         neighbor.distancia_final = neighbor.distancia_final;
                         neighbor.fuerza = neighbor.distancia_inicio + neighbor.distancia_final;
 
-                        startCell.setColor('lime');
-                        endCell.setColor('red');
+                        startCell.setColor(COLORS.STARt);
+                        endCell.setColor(COLORS.END);
                     }
                 })
-                this.color = 'lightblue';
                 closedCells.push(this);
                 currentCell = this;
                 // Eliminar de las abiertas
@@ -212,7 +235,7 @@ class Cell {
                 }
                 break;
             default:
-                this.color = 'white';
+                this.color = COLORS.EMPTY;
         }
     }
 
@@ -241,6 +264,22 @@ class Cell {
         }
 
         return neighbors;
+    }
+
+    getPixelCoords() {
+        return {
+            x: this.coords.x * CELL_SIZE,
+            y: this.coords.y * CELL_SIZE
+        }
+    }
+
+    drawLineTo(targetCell) {
+        ctx.beginPath();
+        ctx.moveTo(this.getPixelCoords().x + (CELL_SIZE / 2), this.getPixelCoords().y + (CELL_SIZE / 2));
+        ctx.lineTo(targetCell.getPixelCoords().x + (CELL_SIZE / 2), targetCell.getPixelCoords().y + (CELL_SIZE / 2));
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 3;
+        ctx.stroke();
     }
 }
 
@@ -277,7 +316,7 @@ class Grid {
     draw() {
         this.drawCells();
 
-        ctx.strokeStyle = 'gray'; // Color de las líneas
+        ctx.strokeStyle = COLORS.GRID; // Color de las líneas
         ctx.lineWidth = 1; // Ancho de las líneas
 
         let coord_x = 0;
@@ -305,6 +344,8 @@ class Grid {
 
             coord_y += CELL_SIZE;
         }
+
+        caminoEncontrado && colorearCamino();
     }
 
     drawCells() {
@@ -321,7 +362,7 @@ class Grid {
     drawCell(cell) {
         ctx.fillStyle = cell.color;
         ctx.fillRect(cell.coords.x * CELL_SIZE, cell.coords.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-        ctx.fillStyle = cell.textColor;
+        ctx.fillStyle = MOSTRAR_NUMEROS ? COLORS.NUMBERS : 'transparent' ;
         ctx.font = SMALL_FONT;
         ctx.textAlign = 'left';
         ctx.fillText(emptyStringIfNull(cell.distancia_inicio), cell.coords.x * CELL_SIZE + 5, cell.coords.y * CELL_SIZE + 15);
@@ -340,8 +381,10 @@ class Grid {
 
 function colorearCamino() {
     let actual = endCell;
-    while (actual !== startCell) {
-        actual.setColor('pink');
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'blue';
+    while (actual !== startCell && actual) {
+        actual.drawLineTo(actual.pointsTo);
         actual = actual.pointsTo;
     }
 }
@@ -354,6 +397,7 @@ function step() {
 
     if (openCells.length === 0) {
         alert('No se encontró el camino')
+        caminoEncontrado = true;
         return
     }
 
@@ -367,10 +411,22 @@ function step() {
     openCells[0].setType(CELL_TYPES.CLOSED);
     if (currentCell === endCell) {
         currentCell.setType(CELL_TYPES.END);
+        caminoEncontrado = true;
         colorearCamino();
     }
 
     grid.draw();
+}
+
+function simulate() {
+    if (caminoEncontrado) {
+        alert('Ya se encontró el camino')
+        return
+    }
+
+    while (!caminoEncontrado) {
+        step();
+    }
 }
 
 const grid = new Grid()
